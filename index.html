@@ -18,21 +18,22 @@
             overflow: hidden;
         }
 
-        /* ── Screens ── */
         .screen {
             display: none;
             width: 100%;
             height: 100%;
             align-items: center;
             justify-content: center;
+        }
+
+        .screen.active {
+            display: flex;
             animation: fadeIn 0.5s ease forwards;
         }
 
-        .screen.active { display: flex; }
-
-        /* ── Welcome screen ── */
+        /* ── Welcome ── */
         .outer {
-            background: #222222;
+            background: #222;
             border: 2.5px solid #444;
             border-radius: 28px;
             width: 90%;
@@ -52,7 +53,7 @@
             background: #f5f5f0;
             border: 2.5px solid #444;
             border-bottom: none;
-            border-radius: 0 0 16px 16px;
+            border-radius: 16px 16px 0 0;
             padding: 14px 40px;
             font-size: 1rem;
             font-weight: 900;
@@ -94,7 +95,7 @@
         /* ── Subculture screen ── */
         #screen-subculture {
             flex-direction: column;
-            gap: 24px;
+            gap: 32px;
         }
 
         .subculture-card {
@@ -117,7 +118,7 @@
             transform: translateX(-50%);
             border: 2.5px solid #444;
             border-bottom: none;
-            border-radius: 0 0 16px 16px;
+            border-radius: 16px 16px 0 0;
             padding: 14px 40px;
             font-size: 1rem;
             font-weight: 900;
@@ -125,6 +126,7 @@
             text-transform: uppercase;
             color: #111;
             white-space: nowrap;
+            transition: background 0.4s;
         }
 
         .subculture-name {
@@ -137,21 +139,43 @@
             text-align: center;
         }
 
-        .subculture-img {
-            width: 200px;
-            height: 260px;
-            object-fit: cover;
-            border-radius: 16px;
+        /* 3D flip on display */
+        .flip-container {
+            width: 260px;
+            height: 347px;
+            perspective: 1000px;
             margin-top: 24px;
         }
 
-        /* Tab colors per subculture */
-        .tab-gambler  { background: #d4737a; }
-        .tab-alt      { background: #7a8fb5; }
-        .tab-streamer { background: #d4b84a; }
-        .tab-kpop     { background: #7ab58a; }
-        .tab-queer    { background: #a07ab5; }
-        .tab-cottage  { background: #d4a07a; }
+        .flipper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+
+        .flipper.flipped { transform: rotateY(180deg); }
+
+        .flip-front,
+        .flip-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .flip-back { transform: rotateY(180deg); }
+
+        .flip-front img,
+        .flip-back img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
 
         #status {
             position: fixed;
@@ -188,7 +212,16 @@
         <div class="subculture-card">
             <div class="subculture-tab" id="subcultureTab">Subculture</div>
             <h2 class="subculture-name" id="subcultureName">—</h2>
-            <img class="subculture-img" id="subcultureImg" src="" alt="">
+            <div class="flip-container">
+                <div class="flipper" id="flipper">
+                    <div class="flip-front">
+                        <img id="cardFront" src="" alt="">
+                    </div>
+                    <div class="flip-back">
+                        <img id="cardBack" src="" alt="">
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -197,22 +230,16 @@
 <script>
     const WS_URL = 'wss://remote-server-production-b3ee.up.railway.app';
     const statusEl = document.getElementById('status');
-
-    const screens = {
-        welcome:     document.getElementById('screen-welcome'),
-        subculture:  document.getElementById('screen-subculture'),
-    };
-
-    const subcultures = {
-        gambler:  { label: 'Gambler',  color: '#d4737a', img: 'cards/GamblerFront.png' },
-        alt:      { label: 'Alt',      color: '#7a8fb5', img: 'cards/AltFront.png' },
-        streamer: { label: 'Streamer', color: '#d4b84a', img: 'cards/StreamerFront.png' },
-        kpop:     { label: 'K-Pop',    color: '#7ab58a', img: 'cards/KPopFront.png' },
-        queer:    { label: 'Queer',    color: '#a07ab5', img: 'cards/QueerFront.png' },
-        cottage:  { label: 'Cottage',  color: '#d4a07a', img: 'cards/CottageFront.png' },
-    };
-
     let ws;
+
+    const cards = {
+        gambler:  { label: 'Gambler',  color: '#d4737a', front: 'cards/GamblerFront.png',  back: 'cards/GamblerBack.png' },
+        alt:      { label: 'Alt',      color: '#7a8fb5', front: 'cards/AltFront.png',      back: 'cards/AltBack.png' },
+        streamer: { label: 'Streamer', color: '#d4b84a', front: 'cards/StreamerFront.png',  back: 'cards/StreamerBack.png' },
+        kpop:     { label: 'K-Pop',    color: '#7ab58a', front: 'cards/KPopFront.png',      back: 'cards/KPopBack.png' },
+        queer:    { label: 'Queer',    color: '#a07ab5', front: 'cards/QueerFront.png',     back: 'cards/QueerBack.png' },
+        cottage:  { label: 'Cottage',  color: '#d4a07a', front: 'cards/CottageFront.png',   back: 'cards/CottageBack.png' },
+    };
 
     function connect() {
         ws = new WebSocket(WS_URL);
@@ -224,6 +251,8 @@
 
             if (msg.action === 'select_card') {
                 showSubculture(msg.value);
+            } else if (msg.action === 'flip_card') {
+                document.getElementById('flipper').classList.toggle('flipped', msg.side === 'back');
             } else if (msg.action === 'reset') {
                 showScreen('welcome');
             }
@@ -236,21 +265,22 @@
     }
 
     function showSubculture(name) {
-        const data = subcultures[name];
+        const data = cards[name];
         if (!data) return;
 
         document.getElementById('subcultureName').textContent = data.label.toUpperCase();
         document.getElementById('subcultureTab').textContent  = data.label;
         document.getElementById('subcultureTab').style.background = data.color;
-        document.getElementById('subcultureImg').src = data.img;
-        document.getElementById('subcultureImg').alt = data.label;
+        document.getElementById('cardFront').src = data.front;
+        document.getElementById('cardBack').src  = data.back;
+        document.getElementById('flipper').classList.remove('flipped');
 
         showScreen('subculture');
     }
 
     function showScreen(name) {
-        Object.values(screens).forEach(s => s.classList.remove('active'));
-        screens[name].classList.add('active');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(`screen-${name}`).classList.add('active');
     }
 
     connect();

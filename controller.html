@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
- 
+
         body {
             font-family: 'Nunito', sans-serif;
             background: #111;
@@ -19,7 +19,7 @@
             padding: 24px;
             gap: 24px;
         }
- 
+
         h1 {
             font-size: 0.85rem;
             font-weight: 900;
@@ -27,7 +27,16 @@
             text-transform: uppercase;
             color: #555;
         }
- 
+
+        /* ── Grid view ── */
+        #grid-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            width: 100%;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -35,9 +44,9 @@
             width: 100%;
             max-width: 600px;
         }
- 
+
         .card {
-            border-radius: 16px;
+            border-radius: 16px 16px 0 0;
             overflow: hidden;
             cursor: pointer;
             transition: transform 0.15s, box-shadow 0.15s;
@@ -45,22 +54,17 @@
             aspect-ratio: 3/4;
             border: 3px solid transparent;
         }
- 
+
         .card:hover  { transform: scale(1.04); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
         .card:active { transform: scale(0.97); }
- 
-        .card.selected {
-            border-color: white;
-            box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
-        }
- 
+
         .card img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
         }
- 
+
         .card-label {
             position: absolute;
             top: 10px;
@@ -76,14 +80,73 @@
             border-radius: 20px;
             white-space: nowrap;
         }
- 
+
         .card-gambler  { background: #d4737a; }
         .card-alt      { background: #7a8fb5; }
         .card-streamer { background: #d4b84a; }
         .card-kpop     { background: #7ab58a; }
         .card-queer    { background: #a07ab5; }
         .card-cottage  { background: #d4a07a; }
- 
+
+        /* ── Selected card view ── */
+        #selected-view {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            width: 100%;
+        }
+
+        #selected-view.active { display: flex; }
+
+        /* 3D flip container */
+        .flip-container {
+            width: 220px;
+            height: 293px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .flip-container:active { transform: scale(0.97); }
+
+        .flipper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+
+        .flipper.flipped { transform: rotateY(180deg); }
+
+        .flip-front,
+        .flip-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .flip-back { transform: rotateY(180deg); }
+
+        .flip-front img,
+        .flip-back img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .tap-hint {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #444;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
         .reset-btn {
             background: transparent;
             color: #888;
@@ -98,10 +161,10 @@
             cursor: pointer;
             transition: transform 0.15s, border-color 0.2s, color 0.2s;
         }
- 
+
         .reset-btn:hover  { border-color: #666; color: #ccc; transform: scale(1.04); }
         .reset-btn:active { transform: scale(0.97); }
- 
+
         #status {
             font-size: 12px;
             color: #444;
@@ -110,52 +173,80 @@
     </style>
 </head>
 <body>
- 
+
     <h1>Controller</h1>
- 
-    <div class="grid">
- 
-        <div class="card card-gambler" onclick="selectCard('gambler', this)">
-            <img src="cards/GamblerFront.png" alt="Gambler" onerror="this.style.display='none'">
-            <span class="card-label">Gambler</span>
+
+    <!-- Grid view -->
+    <div id="grid-view">
+        <div class="grid">
+
+            <div class="card card-gambler" onclick="selectCard('gambler')">
+                <img src="cards/GamblerFront.png" alt="Gambler" onerror="this.style.display='none'">
+                <span class="card-label">Gambler</span>
+            </div>
+
+            <div class="card card-alt" onclick="selectCard('alt')">
+                <img src="cards/AltFront.png" alt="Alt" onerror="this.style.display='none'">
+                <span class="card-label">Alt</span>
+            </div>
+
+            <div class="card card-streamer" onclick="selectCard('streamer')">
+                <img src="cards/StreamerFront.png" alt="Streamer" onerror="this.style.display='none'">
+                <span class="card-label">Streamer</span>
+            </div>
+
+            <div class="card card-kpop" onclick="selectCard('kpop')">
+                <img src="cards/KPopFront.png" alt="K-Pop" onerror="this.style.display='none'">
+                <span class="card-label">K-Pop</span>
+            </div>
+
+            <div class="card card-queer" onclick="selectCard('queer')">
+                <img src="cards/QueerFront.png" alt="Queer" onerror="this.style.display='none'">
+                <span class="card-label">Queer</span>
+            </div>
+
+            <div class="card card-cottage" onclick="selectCard('cottage')">
+                <img src="cards/CottageFront.png" alt="Cottage" onerror="this.style.display='none'">
+                <span class="card-label">Cottage</span>
+            </div>
+
         </div>
- 
-        <div class="card card-alt" onclick="selectCard('alt', this)">
-            <img src="cards/AltFront.png" alt="Alt" onerror="this.style.display='none'">
-            <span class="card-label">Alt</span>
-        </div>
- 
-        <div class="card card-streamer" onclick="selectCard('streamer', this)">
-            <img src="cards/StreamerFront.png" alt="Streamer" onerror="this.style.display='none'">
-            <span class="card-label">Streamer</span>
-        </div>
- 
-        <div class="card card-kpop" onclick="selectCard('kpop', this)">
-            <img src="cards/KPopFront.png" alt="K-Pop" onerror="this.style.display='none'">
-            <span class="card-label">K-Pop</span>
-        </div>
- 
-        <div class="card card-queer" onclick="selectCard('queer', this)">
-            <img src="cards/QueerFront.png" alt="Queer" onerror="this.style.display='none'">
-            <span class="card-label">Queer</span>
-        </div>
- 
-        <div class="card card-cottage" onclick="selectCard('cottage', this)">
-            <img src="cards/CottageFront.png" alt="Cottage" onerror="this.style.display='none'">
-            <span class="card-label">Cottage</span>
-        </div>
- 
     </div>
- 
-    <button class="reset-btn" onclick="sendReset()">↺ Reset</button>
- 
+
+    <!-- Selected card view -->
+    <div id="selected-view">
+        <div class="flip-container" onclick="flipCard()">
+            <div class="flipper" id="flipper">
+                <div class="flip-front">
+                    <img id="selectedFront" src="" alt="">
+                </div>
+                <div class="flip-back">
+                    <img id="selectedBack" src="" alt="">
+                </div>
+            </div>
+        </div>
+        <p class="tap-hint">Tap card to flip</p>
+        <button class="reset-btn" onclick="sendReset()">↺ Reset</button>
+    </div>
+
     <span id="status">Connecting…</span>
- 
+
 <script>
     const WS_URL = 'wss://remote-server-production-b3ee.up.railway.app';
     const statusEl = document.getElementById('status');
     let ws;
- 
+    let isFlipped = false;
+    let currentCard = null;
+
+    const cards = {
+        gambler:  { label: 'Gambler',  front: 'cards/GamblerFront.png',  back: 'cards/GamblerBack.png' },
+        alt:      { label: 'Alt',      front: 'cards/AltFront.png',      back: 'cards/AltBack.png' },
+        streamer: { label: 'Streamer', front: 'cards/StreamerFront.png',  back: 'cards/StreamerBack.png' },
+        kpop:     { label: 'K-Pop',    front: 'cards/KPopFront.png',      back: 'cards/KPopBack.png' },
+        queer:    { label: 'Queer',    front: 'cards/QueerFront.png',     back: 'cards/QueerBack.png' },
+        cottage:  { label: 'Cottage',  front: 'cards/CottageFront.png',   back: 'cards/CottageBack.png' },
+    };
+
     function connect() {
         ws = new WebSocket(WS_URL);
         ws.onopen  = () => statusEl.textContent = 'Connected ✓';
@@ -164,24 +255,42 @@
             setTimeout(connect, 3000);
         };
     }
- 
-    function selectCard(name, el) {
-        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
-        el.classList.add('selected');
-        send({ action: 'select_card', value: name });
+
+    function selectCard(name) {
+        currentCard = name;
+        isFlipped = false;
+
+        const data = cards[name];
+        document.getElementById('selectedFront').src = data.front;
+        document.getElementById('selectedBack').src  = data.back;
+        document.getElementById('flipper').classList.remove('flipped');
+
+        document.getElementById('grid-view').style.display = 'none';
+        document.getElementById('selected-view').classList.add('active');
+
+        send({ action: 'select_card', value: name, side: 'front' });
     }
- 
+
+    function flipCard() {
+        isFlipped = !isFlipped;
+        document.getElementById('flipper').classList.toggle('flipped', isFlipped);
+        send({ action: 'flip_card', side: isFlipped ? 'back' : 'front' });
+    }
+
     function sendReset() {
-        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        isFlipped = false;
+        currentCard = null;
+        document.getElementById('selected-view').classList.remove('active');
+        document.getElementById('grid-view').style.display = 'flex';
         send({ action: 'reset' });
     }
- 
+
     function send(msg) {
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(msg));
         }
     }
- 
+
     connect();
 </script>
 </body>
