@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controller</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+ 
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #111;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            gap: 24px;
+        }
+ 
+        h1 {
+            font-size: 0.85rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #555;
+        }
+ 
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            width: 100%;
+            max-width: 600px;
+        }
+ 
+        .card {
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            position: relative;
+            aspect-ratio: 3/4;
+            border: 3px solid transparent;
+        }
+ 
+        .card:hover  { transform: scale(1.04); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .card:active { transform: scale(0.97); }
+ 
+        .card.selected {
+            border-color: white;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+        }
+ 
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+ 
+        .card-label {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+ 
+        .card-gambler  { background: #d4737a; }
+        .card-alt      { background: #7a8fb5; }
+        .card-streamer { background: #d4b84a; }
+        .card-kpop     { background: #7ab58a; }
+        .card-queer    { background: #a07ab5; }
+        .card-cottage  { background: #d4a07a; }
+ 
+        .reset-btn {
+            background: transparent;
+            color: #888;
+            border: 2px solid #333;
+            border-radius: 50px;
+            padding: 14px 48px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.2s, color 0.2s;
+        }
+ 
+        .reset-btn:hover  { border-color: #666; color: #ccc; transform: scale(1.04); }
+        .reset-btn:active { transform: scale(0.97); }
+ 
+        #status {
+            font-size: 12px;
+            color: #444;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+ 
+    <h1>Controller</h1>
+ 
+    <div class="grid">
+ 
+        <div class="card card-gambler" onclick="selectCard('gambler', this)">
+            <img src="cards/GamblerFront.png" alt="Gambler" onerror="this.style.display='none'">
+            <span class="card-label">Gambler</span>
+        </div>
+ 
+        <div class="card card-alt" onclick="selectCard('alt', this)">
+            <img src="cards/AltFront.png" alt="Alt" onerror="this.style.display='none'">
+            <span class="card-label">Alt</span>
+        </div>
+ 
+        <div class="card card-streamer" onclick="selectCard('streamer', this)">
+            <img src="cards/StreamerFront.png" alt="Streamer" onerror="this.style.display='none'">
+            <span class="card-label">Streamer</span>
+        </div>
+ 
+        <div class="card card-kpop" onclick="selectCard('kpop', this)">
+            <img src="cards/KPopFront.png" alt="K-Pop" onerror="this.style.display='none'">
+            <span class="card-label">K-Pop</span>
+        </div>
+ 
+        <div class="card card-queer" onclick="selectCard('queer', this)">
+            <img src="cards/QueerFront.png" alt="Queer" onerror="this.style.display='none'">
+            <span class="card-label">Queer</span>
+        </div>
+ 
+        <div class="card card-cottage" onclick="selectCard('cottage', this)">
+            <img src="cards/CottageFront.png" alt="Cottage" onerror="this.style.display='none'">
+            <span class="card-label">Cottage</span>
+        </div>
+ 
+    </div>
+ 
+    <button class="reset-btn" onclick="sendReset()">↺ Reset</button>
+ 
+    <span id="status">Connecting…</span>
+ 
+<script>
+    const WS_URL = 'wss://remote-server-production-b3ee.up.railway.app';
+    const statusEl = document.getElementById('status');
+    let ws;
+ 
+    function connect() {
+        ws = new WebSocket(WS_URL);
+        ws.onopen  = () => statusEl.textContent = 'Connected ✓';
+        ws.onclose = () => {
+            statusEl.textContent = 'Disconnected — retrying…';
+            setTimeout(connect, 3000);
+        };
+    }
+ 
+    function selectCard(name, el) {
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        send({ action: 'select_card', value: name });
+    }
+ 
+    function sendReset() {
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        send({ action: 'reset' });
+    }
+ 
+    function send(msg) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(msg));
+        }
+    }
+ 
+    connect();
+</script>
+</body>
+</html>
